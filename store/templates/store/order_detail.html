@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Order #{{ order.id }}</title>
+    <script src="https://js.stripe.com/v3/"></script>
+</head>
+<body>
+<h1>Order #{{ order.id }}</h1>
+
+<h2>Items:</h2>
+<ul>
+    {% for item in order.items.all %}
+    <li>{{ item.name }} - {{ item.price }} {{ item.currency|upper }}</li>
+    {% endfor %}
+</ul>
+
+{% if order.discount %}
+<p><strong>Discount: {{ order.discount.percent_off }}%</strong></p>
+{% endif %}
+
+<p><strong>Total: {{ order.total_amount }} {{ order.items.first.currency|upper }}</strong></p>
+
+<button id="buy-button">Buy Order</button>
+
+<script type="text/javascript">
+    var stripe = Stripe('{{ publishable_key }}');
+    var buyButton = document.getElementById('buy-button');
+
+    buyButton.addEventListener('click', function() {
+        fetch('/order/{{ order.id }}/buy/', {method: 'GET'})
+        .then(function(response) {
+            return response.json();
+        })
+        .then(function(session) {
+            if (session.error) {
+                alert('Error: ' + session.error);
+            } else {
+                return stripe.redirectToCheckout({ sessionId: session.sessionId });
+            }
+        })
+        .then(function(result) {
+            if (result.error) {
+                alert(result.error.message);
+            }
+        })
+        .catch(function(error) {
+            console.error('Error:', error);
+        });
+    });
+</script>
+</body>
+</html>
